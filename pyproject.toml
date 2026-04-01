@@ -9,6 +9,7 @@ license = {text = "Apache License"}
 readme = "README.md"
 requires-python = "<3.14,>=3.11"
 dependencies = [
+    "pgvector>=0.2.3",
     "typer>=0.15.2",
     "questionary>=2.0.1",
     "pytz>=2023.3.post1",
