@@ -91,6 +91,7 @@ WORKDIR /app
 
 # Copy virtual environment and app from builder
 COPY --from=builder /app .
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 # Copy initialization SQL if it exists
 COPY init.sql /docker-entrypoint-initdb.d/
