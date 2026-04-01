@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  riven:
+    image: riven/riven:latest
+    ports:
+      - "8283:8283"
+    environment:
+      - riven_LLM_ENDPOINT=http://vllm:8000
+      - riven_LLM_ENDPOINT_TYPE=vllm
+      - riven_LLM_MODEL=${riven_LLM_MODEL} # Replace with your model
+      - riven_LLM_CONTEXT_WINDOW=8192
+    depends_on:
+      - vllm
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    ports:
+      - "8000:8000"
+    command: >
+      --model ${riven_LLM_MODEL} --max_model_len=8000
+    # Replace with your model
+    ipc: host

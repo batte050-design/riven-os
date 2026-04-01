@@ -1,0 +1,65 @@
+services:
+  riven_db:
+    image: ankane/pgvector:v0.5.1
+    networks:
+      default:
+        aliases:
+          - pgvector_db
+          - riven-db
+    environment:
+      - POSTGRES_USER=${riven_PG_USER:-riven}
+      - POSTGRES_PASSWORD=${riven_PG_PASSWORD:-riven}
+      - POSTGRES_DB=${riven_PG_DB:-riven}
+    volumes:
+      - ./.persist/pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${riven_PG_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U riven"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  riven_server:
+    image: riven/riven:latest
+    hostname: riven-server
+    depends_on:
+      riven_db:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+      - "8283:8283"
+    env_file:
+      - .env
+    environment:
+      - riven_PG_URI=${riven_PG_URI:-postgresql://${riven_PG_USER:-riven}:${riven_PG_PASSWORD:-riven}@${riven_DB_HOST:-riven-db}:${riven_PG_PORT:-5432}/${riven_PG_DB:-riven}}
+      - riven_DEBUG=True
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - AZURE_API_KEY=${AZURE_API_KEY}
+      - AZURE_BASE_URL=${AZURE_BASE_URL}
+      - AZURE_API_VERSION=${AZURE_API_VERSION}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - VLLM_API_BASE=${VLLM_API_BASE}
+      - OPENLLM_AUTH_TYPE=${OPENLLM_AUTH_TYPE}
+      - OPENLLM_API_KEY=${OPENLLM_API_KEY}
+      - riven_OTEL_EXPORTER_OTLP_ENDPOINT=${riven_OTEL_EXPORTER_OTLP_ENDPOINT}
+      - CLICKHOUSE_ENDPOINT=${CLICKHOUSE_ENDPOINT}
+      - CLICKHOUSE_DATABASE=${CLICKHOUSE_DATABASE}
+      - CLICKHOUSE_USERNAME=${CLICKHOUSE_USERNAME}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+    # volumes:
+    # - ./configs/server_config.yaml:/root/.riven/config # config file
+    # - ~/.riven/credentials:/root/.riven/credentials # credentials file
+    # Uncomment this line to mount a local directory for tool execution, and specify the mount path
+    # before running docker compose: `export riven_SANDBOX_MOUNT_PATH=$PWD/directory`
+    # - ${riven_SANDBOX_MOUNT_PATH:?}:/root/.riven/tool_execution_dir # mounted volume for tool execution
+  riven_nginx:
+    hostname: riven-nginx
+    image: nginx:stable-alpine3.17-slim
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"

@@ -1,0 +1,48 @@
+services:
+  riven_db:
+    image: pgvector/pgvector:0.8.1-pg15
+    networks:
+      default:
+        aliases:
+          - pgvector_db
+          - riven-db
+    environment:
+      - POSTGRES_USER=${riven_PG_USER:-riven}
+      - POSTGRES_PASSWORD=${riven_PG_PASSWORD:-riven}
+      - POSTGRES_DB=${riven_PG_DB:-riven}
+    volumes:
+      - ./.persist/pgdata-test:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - '5432:5432'
+  riven_server:
+    image: riven/riven:latest
+    hostname: riven
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    depends_on:
+      - riven_db
+    ports:
+      - '8083:8083'
+      - '8283:8283'
+    environment:
+      - riven_PG_DB=${riven_PG_DB:-riven}
+      - riven_PG_USER=${riven_PG_USER:-riven}
+      - riven_PG_PASSWORD=${riven_PG_PASSWORD:-riven}
+      - riven_PG_HOST=${riven_PG_HOST:-pgvector_db}
+      - riven_PG_PORT=${riven_PG_PORT:-5432}
+      - riven_PG_URI=${riven_PG_URI:-postgresql://${riven_PG_USER:-riven}:${riven_PG_PASSWORD:-riven}@${riven_PG_HOST:-pgvector_db}:${riven_PG_PORT:-5432}/${riven_PG_DB:-riven}}
+      - riven_DEBUG=True
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - AZURE_API_KEY=${AZURE_API_KEY}
+      - AZURE_BASE_URL=${AZURE_BASE_URL}
+      - AZURE_API_VERSION=${AZURE_API_VERSION}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - VLLM_API_BASE=${VLLM_API_BASE}
+      - OPENLLM_AUTH_TYPE=${OPENLLM_AUTH_TYPE}
+      - OPENLLM_API_KEY=${OPENLLM_API_KEY}
